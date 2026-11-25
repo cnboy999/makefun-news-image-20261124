@@ -1,11 +1,37 @@
-// A working news-image-daily entry (Node 22, standard library only): its image is the entry.png beside this file, and
-// the program copies it to /output/entry.png. A starting point, not a winner: replace the image. The gate takes a
-// whole PNG or JPEG of at most 1 MiB and 1024 by 1024 pixels, and the judge sees exactly the bytes copied.
+// Entry point for the 24 November 2026 news-image entry.
 //
-// Outside the grader's container, MAKEFUN_OUTPUT_DIR stands in for /output:
-//   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
+// The entry is the PNG sitting next to this file. This program checks that
+// the image exists and fits the bounty gate (at most 1 MiB), makes sure the
+// destination directory exists, and copies the image there as entry.png.
+//
+// The destination comes from MAKEFUN_OUTPUT_DIR, falling back to /output,
+// which is where the grader looks for the finished image.
 
-import { copyFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { copyFileSync, existsSync, mkdirSync, statSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-copyFileSync(new URL('./entry.png', import.meta.url), join(process.env.MAKEFUN_OUTPUT_DIR ?? '/output', 'entry.png'));
+const MAX_IMAGE_BYTES = 1024 * 1024;
+
+const sourcePath = join(dirname(fileURLToPath(import.meta.url)), "entry.png");
+const outputDir = process.env.MAKEFUN_OUTPUT_DIR ?? "/output";
+const targetPath = join(outputDir, "entry.png");
+
+if (!existsSync(sourcePath)) {
+  throw new Error(
+    `entry image not found at ${sourcePath}; expected entry.png next to main.ts`,
+  );
+}
+
+const imageSize = statSync(sourcePath).size;
+console.log(`Found entry image: ${imageSize} bytes.`);
+if (imageSize > MAX_IMAGE_BYTES) {
+  throw new Error(
+    `entry image is ${imageSize} bytes, over the 1 MiB limit`,
+  );
+}
+
+mkdirSync(outputDir, { recursive: true });
+copyFileSync(sourcePath, targetPath);
+
+console.log(`Wrote ${targetPath} (${imageSize} bytes).`);
